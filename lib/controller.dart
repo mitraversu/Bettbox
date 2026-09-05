@@ -1420,13 +1420,15 @@ class AppController {
 
   void initLink() {
     linkManager.initAppLinksListen((url) async {
+      // Share links are long and mostly opaque, keep the dialog readable.
+      final preview = url.length > 96 ? '${url.substring(0, 96)}…' : url;
       final res = await globalState.showMessage(
         title: appLocalizations.add,
         message: TextSpan(
           children: [
             TextSpan(text: appLocalizations.doYouWantToPass),
             TextSpan(
-              text: ' $url ',
+              text: ' $preview ',
               style: TextStyle(
                 color: Theme.of(context).colorScheme.primary,
                 decoration: TextDecoration.underline,
@@ -1486,11 +1488,84 @@ class AppController {
     return;
   }
 
+  /// Imports proxy share links (`vmess://`, `vless://`, `ss://`, `trojan://`,
+  /// `hysteria2://`, ...), base64 bundles or raw config text as a local
+  /// profile, the way v2rayNG does.
+  Future<bool> addProfileFormShareLink(
+    String text, {
+    String? label,
+    bool navigate = true,
+  }) async {
+    final result = ShareLink.parse(text);
+    if (!result.hasContent) {
+      await globalState.showMessage(
+        title: appLocalizations.add,
+        message: TextSpan(text: appLocalizations.shareLinkInvalid),
+        cancelable: false,
+      );
+      return false;
+    }
+    _ref.read(loadingProvider.notifier).value = true;
+    try {
+      final content = result.yaml ?? ShareLink.buildConfig(result.proxies);
+      final name = label?.trim() ?? '';
+      final profile = await Profile.normal(
+        label: name.isEmpty ? ShareLink.suggestLabel(result) : name,
+      ).saveFileWithString(content);
+      if (navigate) {
+        if (globalState.navigatorKey.currentState?.canPop() ?? false) {
+          globalState.navigatorKey.currentState
+              ?.popUntil((route) => route.isFirst);
+        }
+        toProfiles();
+      }
+      await addProfile(profile);
+      final count = result.proxies.length;
+      final failed = result.failureCount;
+      globalState.showNotifier(
+        failed == 0
+            ? appLocalizations.shareLinkImported(count)
+            : appLocalizations.shareLinkPartiallyImported(count, failed),
+      );
+      if (failed > 0) {
+        for (final failure in result.failures) {
+          commonPrint.log('Share link import failed: $failure');
+        }
+      }
+      return true;
+    } on Object catch (e) {
+      await globalState.showMessage(
+        title: appLocalizations.add,
+        message: TextSpan(text: _formatErrorMessage(e)),
+        cancelable: false,
+      );
+      return false;
+    } finally {
+      _ref.read(loadingProvider.notifier).value = false;
+    }
+  }
+
   Future<void> addProfileFormURL(String url, {String? ageSecretKey}) async {
+    final content = url.trim();
+    if (!content.isUrl) {
+      // Not a subscription address: try to read it as share link content.
+      final kind = ShareLink.detect(content);
+      if (kind == ShareLinkContentKind.shareLink ||
+          kind == ShareLinkContentKind.yamlConfig) {
+        await addProfileFormShareLink(content);
+        return;
+      }
+      await globalState.showMessage(
+        title: appLocalizations.add,
+        message: TextSpan(text: appLocalizations.shareLinkInvalid),
+        cancelable: false,
+      );
+      return;
+    }
     _ref.read(loadingProvider.notifier).value = true;
     try {
       final profile = await Profile.normal(
-        url: url,
+        url: content,
         ageSecretKey: ageSecretKey,
       ).update();
       if (globalState.navigatorKey.currentState?.canPop() ?? false) {
@@ -1514,7 +1589,7 @@ class AppController {
     final platformFiles = await safeRun(
       () => picker.pickerFiles(
         allowMultiple: true,
-        allowedExtensions: ['yaml', 'yml'],
+        allowedExtensions: ['yaml', 'yml', 'txt', 'json'],
       ),
     );
     if (platformFiles == null || platformFiles.isEmpty) {
@@ -1524,7 +1599,10 @@ class AppController {
 
     final validFiles = platformFiles.where((file) {
       final name = file.name.toLowerCase();
-      return name.endsWith('.yaml') || name.endsWith('.yml');
+      return name.endsWith('.yaml') ||
+          name.endsWith('.yml') ||
+          name.endsWith('.txt') ||
+          name.endsWith('.json');
     }).toList();
 
     if (validFiles.isEmpty) {
@@ -1539,9 +1617,7 @@ class AppController {
         if (bytes == null || bytes.isEmpty) continue;
 
         try {
-          final profile = await Profile.normal(
-            label: platformFile.name,
-          ).saveFile(bytes);
+          final profile = await _profileFromFile(platformFile.name, bytes);
           await addProfile(profile);
           successCount++;
         } on Object catch (e) {
@@ -1563,6 +1639,22 @@ class AppController {
     } finally {
       _ref.read(loadingProvider.notifier).value = false;
     }
+  }
+
+  /// A picked file is either a config or a list of proxy share links.
+  Future<Profile> _profileFromFile(String name, Uint8List bytes) async {
+    final profile = Profile.normal(label: name);
+    final text = utf8.decode(bytes, allowMalformed: true);
+    if (ShareLink.detect(text) != ShareLinkContentKind.shareLink) {
+      return profile.saveFile(bytes);
+    }
+    final result = ShareLink.parse(text);
+    if (result.proxies.isEmpty) {
+      return profile.saveFile(bytes);
+    }
+    return profile.saveFileWithString(
+      result.yaml ?? ShareLink.buildConfig(result.proxies),
+    );
   }
 
   Future<void> addProfileFormQrCode() async {

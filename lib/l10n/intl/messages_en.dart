@@ -56,6 +56,10 @@ class MessageLookup extends MessageLookupByLibrary {
   static String m14(count) =>
       "${Intl.plural(count, one: 'year', other: 'years')}";
 
+  static String m15(count) => "Imported ${count} node(s)";
+  static String m16(count, failed) =>
+      "Imported ${count} node(s), ${failed} link(s) failed";
+
   final messages = _notInlinedMessages(_notInlinedMessages);
   static Map<String, Function> _notInlinedMessages(_) => <String, Function>{
     "about": MessageLookupByLibrary.simpleMessage("About"),
@@ -589,6 +593,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "importFile": MessageLookupByLibrary.simpleMessage("Import from File"),
     "importFromCode": MessageLookupByLibrary.simpleMessage("Import from Code"),
     "importFromURL": MessageLookupByLibrary.simpleMessage("Import from URL"),
+    "importShareLink": MessageLookupByLibrary.simpleMessage(
+      "Import Share Link",
+    ),
     "importUrl": MessageLookupByLibrary.simpleMessage("Import from URL"),
     "infiniteTime": MessageLookupByLibrary.simpleMessage("Never Expires"),
     "init": MessageLookupByLibrary.simpleMessage("Init"),
@@ -1044,6 +1051,21 @@ class MessageLookup extends MessageLookupByLibrary {
     "serviceReady": MessageLookupByLibrary.simpleMessage("Service Ready"),
     "serviceRunning": MessageLookupByLibrary.simpleMessage("Service Running"),
     "settings": MessageLookupByLibrary.simpleMessage("Settings"),
+    "shareLink": MessageLookupByLibrary.simpleMessage("Share Link"),
+    "shareLinkDesc": MessageLookupByLibrary.simpleMessage(
+      "Paste vmess / vless / trojan / ss / hysteria2 share links",
+    ),
+    "shareLinkHint": MessageLookupByLibrary.simpleMessage(
+      "vmess://, vless://, trojan://, ss://, hysteria2:// ...",
+    ),
+    "shareLinkImported": m15,
+    "shareLinkInvalid": MessageLookupByLibrary.simpleMessage(
+      "No valid share link or config found",
+    ),
+    "shareLinkPartiallyImported": m16,
+    "shareLinkValidationDesc": MessageLookupByLibrary.simpleMessage(
+      "Please enter a valid URL or share link",
+    ),
     "show": MessageLookupByLibrary.simpleMessage("Show"),
     "showHiddenItems": MessageLookupByLibrary.simpleMessage(
       "Show Hidden Items",

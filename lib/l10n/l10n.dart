@@ -5663,6 +5663,85 @@ class AppLocalizations {
   String get updateTime {
     return Intl.message('Update Time', name: 'updateTime', desc: '', args: []);
   }
+  /// `Share Link`
+  String get shareLink {
+    return Intl.message(
+      'Share Link',
+      name: 'shareLink',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Paste vmess / vless / trojan / ss / hysteria2 share links`
+  String get shareLinkDesc {
+    return Intl.message(
+      'Paste vmess / vless / trojan / ss / hysteria2 share links',
+      name: 'shareLinkDesc',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Import Share Link`
+  String get importShareLink {
+    return Intl.message(
+      'Import Share Link',
+      name: 'importShareLink',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `vmess://, vless://, trojan://, ss://, hysteria2:// ...`
+  String get shareLinkHint {
+    return Intl.message(
+      'vmess://, vless://, trojan://, ss://, hysteria2:// ...',
+      name: 'shareLinkHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Imported {count} node(s)`
+  String shareLinkImported(Object count) {
+    return Intl.message(
+      'Imported $count node(s)',
+      name: 'shareLinkImported',
+      desc: '',
+      args: [count],
+    );
+  }
+
+  /// `Imported {count} node(s), {failed} link(s) failed`
+  String shareLinkPartiallyImported(Object count, Object failed) {
+    return Intl.message(
+      'Imported $count node(s), $failed link(s) failed',
+      name: 'shareLinkPartiallyImported',
+      desc: '',
+      args: [count, failed],
+    );
+  }
+
+  /// `No valid share link or config found`
+  String get shareLinkInvalid {
+    return Intl.message(
+      'No valid share link or config found',
+      name: 'shareLinkInvalid',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Please enter a valid URL or share link`
+  String get shareLinkValidationDesc {
+    return Intl.message(
+      'Please enter a valid URL or share link',
+      name: 'shareLinkValidationDesc',
+      desc: '',
+      args: [],
+    );
+  }
 }
 
 class AppLocalizationDelegate extends LocalizationsDelegate<AppLocalizations> {

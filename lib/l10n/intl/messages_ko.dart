@@ -51,6 +51,9 @@ class MessageLookup extends MessageLookupByLibrary {
 
   static String m14(count) => "${Intl.plural(count, other: '#년')}";
 
+  static String m15(count) => "${count}개 노드를 가져왔습니다";
+  static String m16(count, failed) => "${count}개 노드 가져옴, ${failed}개 링크 실패";
+
   final messages = _notInlinedMessages(_notInlinedMessages);
   static Map<String, Function> _notInlinedMessages(_) => <String, Function>{
     "about": MessageLookupByLibrary.simpleMessage("정보"),
@@ -476,6 +479,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "importFile": MessageLookupByLibrary.simpleMessage("파일에서 가져오기"),
     "importFromCode": MessageLookupByLibrary.simpleMessage("코드로 가져오기"),
     "importFromURL": MessageLookupByLibrary.simpleMessage("URL에서 가져오기"),
+    "importShareLink": MessageLookupByLibrary.simpleMessage("공유 링크 가져오기"),
     "importUrl": MessageLookupByLibrary.simpleMessage("URL에서 가져오기"),
     "infiniteTime": MessageLookupByLibrary.simpleMessage("무제한"),
     "init": MessageLookupByLibrary.simpleMessage("초기화"),
@@ -839,6 +843,21 @@ class MessageLookup extends MessageLookupByLibrary {
     "serviceReady": MessageLookupByLibrary.simpleMessage("서비스 준비 완료"),
     "serviceRunning": MessageLookupByLibrary.simpleMessage("서비스 실행 중"),
     "settings": MessageLookupByLibrary.simpleMessage("설정"),
+    "shareLink": MessageLookupByLibrary.simpleMessage("공유 링크"),
+    "shareLinkDesc": MessageLookupByLibrary.simpleMessage(
+      "vmess / vless / trojan / ss / hysteria2 등의 공유 링크 붙여넣기",
+    ),
+    "shareLinkHint": MessageLookupByLibrary.simpleMessage(
+      "vmess://, vless://, trojan://, ss://, hysteria2:// ...",
+    ),
+    "shareLinkImported": m15,
+    "shareLinkInvalid": MessageLookupByLibrary.simpleMessage(
+      "유효한 공유 링크 또는 구성을 찾을 수 없습니다",
+    ),
+    "shareLinkPartiallyImported": m16,
+    "shareLinkValidationDesc": MessageLookupByLibrary.simpleMessage(
+      "올바른 URL 또는 공유 링크를 입력하세요",
+    ),
     "show": MessageLookupByLibrary.simpleMessage("표시"),
     "showHiddenItems": MessageLookupByLibrary.simpleMessage("숨겨진 항목 표시"),
     "showMenu": MessageLookupByLibrary.simpleMessage("메뉴 열기"),

@@ -57,6 +57,10 @@ class MessageLookup extends MessageLookupByLibrary {
   static String m14(count) =>
       "${Intl.plural(count, one: 'год', few: 'года', many: 'лет', other: 'лет')}";
 
+  static String m15(count) => "Импортировано узлов: ${count}";
+  static String m16(count, failed) =>
+      "Импортировано узлов: ${count}, не удалось разобрать: ${failed}";
+
   final messages = _notInlinedMessages(_notInlinedMessages);
   static Map<String, Function> _notInlinedMessages(_) => <String, Function>{
     "about": MessageLookupByLibrary.simpleMessage("О программе"),
@@ -610,6 +614,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "importFile": MessageLookupByLibrary.simpleMessage("Импорт из файла"),
     "importFromCode": MessageLookupByLibrary.simpleMessage("Импорт из кода"),
     "importFromURL": MessageLookupByLibrary.simpleMessage("Импорт из URL"),
+    "importShareLink": MessageLookupByLibrary.simpleMessage(
+      "Импорт ссылки узла",
+    ),
     "importUrl": MessageLookupByLibrary.simpleMessage("Импорт по URL"),
     "infiniteTime": MessageLookupByLibrary.simpleMessage("Бессрочно"),
     "init": MessageLookupByLibrary.simpleMessage("Инициализация"),
@@ -1075,6 +1082,21 @@ class MessageLookup extends MessageLookupByLibrary {
     "serviceReady": MessageLookupByLibrary.simpleMessage("Служба готова"),
     "serviceRunning": MessageLookupByLibrary.simpleMessage("Служба запущена"),
     "settings": MessageLookupByLibrary.simpleMessage("Настройки"),
+    "shareLink": MessageLookupByLibrary.simpleMessage("Ссылка узла"),
+    "shareLinkDesc": MessageLookupByLibrary.simpleMessage(
+      "Вставьте ссылки vmess / vless / trojan / ss / hysteria2",
+    ),
+    "shareLinkHint": MessageLookupByLibrary.simpleMessage(
+      "vmess://, vless://, trojan://, ss://, hysteria2:// ...",
+    ),
+    "shareLinkImported": m15,
+    "shareLinkInvalid": MessageLookupByLibrary.simpleMessage(
+      "Не найдено корректной ссылки или конфигурации",
+    ),
+    "shareLinkPartiallyImported": m16,
+    "shareLinkValidationDesc": MessageLookupByLibrary.simpleMessage(
+      "Введите корректный URL или ссылку узла",
+    ),
     "show": MessageLookupByLibrary.simpleMessage("Показать"),
     "showHiddenItems": MessageLookupByLibrary.simpleMessage("Показать скрытые"),
     "showMenu": MessageLookupByLibrary.simpleMessage("Открыть меню"),

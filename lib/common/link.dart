@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:app_links/app_links.dart';
 
 import 'print.dart';
+import 'share_link.dart';
 
 typedef InstallConfigCallBack = void Function(String url);
 
@@ -20,14 +21,22 @@ class LinkManager {
   ) async {
     commonPrint.log('initAppLinksListen');
     destroy();
-    subscription = _appLinks.uriLinkStream.listen((uri) {
-      commonPrint.log('onAppLink: $uri');
-      if (uri.host == 'install-config') {
+    // The raw stream is used on purpose: `vmess://` payloads are base64 and are
+    // not valid URIs, parsing them would drop the link.
+    subscription = _appLinks.stringLinkStream.listen((link) {
+      commonPrint.log('onAppLink: $link');
+      final uri = Uri.tryParse(link);
+      if (uri != null && uri.host == 'install-config') {
         final parameters = uri.queryParameters;
         final url = parameters['url'];
         if (url != null) {
           installConfigCallBack(url);
         }
+        return;
+      }
+      // Proxy share links handed over by the OS (`vless://`, `ss://`, ...).
+      if (link.isShareLinkContent) {
+        installConfigCallBack(link);
       }
     });
   }

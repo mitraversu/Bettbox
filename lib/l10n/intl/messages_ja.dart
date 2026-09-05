@@ -51,6 +51,9 @@ class MessageLookup extends MessageLookupByLibrary {
 
   static String m14(count) => "${Intl.plural(count, other: '年')}";
 
+  static String m15(count) => "${count} 件のノードをインポートしました";
+  static String m16(count, failed) => "${count} 件のノードをインポート、${failed} 件は失敗しました";
+
   final messages = _notInlinedMessages(_notInlinedMessages);
   static Map<String, Function> _notInlinedMessages(_) => <String, Function>{
     "about": MessageLookupByLibrary.simpleMessage("アプリについて"),
@@ -466,6 +469,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "importFile": MessageLookupByLibrary.simpleMessage("ファイルからインポート"),
     "importFromCode": MessageLookupByLibrary.simpleMessage("コードからインポート"),
     "importFromURL": MessageLookupByLibrary.simpleMessage("URLからインポート"),
+    "importShareLink": MessageLookupByLibrary.simpleMessage("共有リンクをインポート"),
     "importUrl": MessageLookupByLibrary.simpleMessage("URLからインポート"),
     "infiniteTime": MessageLookupByLibrary.simpleMessage("無期限"),
     "init": MessageLookupByLibrary.simpleMessage("初期化"),
@@ -829,6 +833,21 @@ class MessageLookup extends MessageLookupByLibrary {
     "serviceReady": MessageLookupByLibrary.simpleMessage("サービス準備完了"),
     "serviceRunning": MessageLookupByLibrary.simpleMessage("サービス稼働中"),
     "settings": MessageLookupByLibrary.simpleMessage("設定"),
+    "shareLink": MessageLookupByLibrary.simpleMessage("共有リンク"),
+    "shareLinkDesc": MessageLookupByLibrary.simpleMessage(
+      "vmess / vless / trojan / ss / hysteria2 などの共有リンクを貼り付け",
+    ),
+    "shareLinkHint": MessageLookupByLibrary.simpleMessage(
+      "vmess://, vless://, trojan://, ss://, hysteria2:// ...",
+    ),
+    "shareLinkImported": m15,
+    "shareLinkInvalid": MessageLookupByLibrary.simpleMessage(
+      "有効な共有リンクまたは設定が見つかりません",
+    ),
+    "shareLinkPartiallyImported": m16,
+    "shareLinkValidationDesc": MessageLookupByLibrary.simpleMessage(
+      "有効な URL または共有リンクを入力してください",
+    ),
     "show": MessageLookupByLibrary.simpleMessage("表示"),
     "showHiddenItems": MessageLookupByLibrary.simpleMessage("非表示項目を表示"),
     "showMenu": MessageLookupByLibrary.simpleMessage("メニューを開く"),

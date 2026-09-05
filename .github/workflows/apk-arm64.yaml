@@ -1,0 +1,298 @@
+name: apk-arm64
+
+# Single-ABI build for the share-link import branch: produces only the
+# arm64-v8a APK and uploads it as a workflow artifact (no tag, no release).
+# The multi-platform release pipeline in build.yaml keeps running on `v*` tags.
+#
+# The `analyze` job runs first on purpose: it fails in a few minutes on Dart
+# compile errors instead of after the whole Go/Rust/Gradle build.
+on:
+  push:
+    branches:
+      - arena/01a072f3-bettbox
+  workflow_dispatch:
+
+permissions: write-all
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  SENTRY_BACKEND: none
+  NDK_VERSION: 28.2.13676358
+  FLUTTER_VERSION: 3.44.9
+
+jobs:
+  analyze:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+          cache-key: flutter-analyze-${{ hashFiles('**/pubspec.lock') }}
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+
+      - name: Analyze
+        shell: bash
+        run: |
+          set -o pipefail
+          {
+            flutter pub get
+            dart run build_runner build -d
+            flutter analyze --no-fatal-infos --no-fatal-warnings
+          } 2>&1 | tee analyze.log
+
+      - name: Report analysis
+        if: failure()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          grep -E '^\s*(error|warning)\s*•' analyze.log > /tmp/issues.log || true
+          {
+            echo "### Dart analysis failed"
+            echo ''
+            echo '```text'
+            if [ -s /tmp/issues.log ]; then
+              head -c 40000 /tmp/issues.log
+            else
+              tail -c 40000 analyze.log
+            fi
+            echo '```'
+          } > /tmp/report.md
+          PR="$(gh pr view "${GITHUB_REF_NAME}" --repo "${GITHUB_REPOSITORY}" --json number --jq .number 2>/dev/null || true)"
+          if [ -n "${PR}" ]; then
+            gh pr comment "${PR}" --repo "${GITHUB_REPOSITORY}" --body-file /tmp/report.md
+          fi
+
+  build:
+    needs: analyze
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Setup Android NDK
+        shell: bash
+        run: |
+          yes | "${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager" --install "ndk;${NDK_VERSION}" >/dev/null 2>&1 || true
+          echo "ANDROID_NDK=${ANDROID_SDK_ROOT}/ndk/${NDK_VERSION}" >> "$GITHUB_ENV"
+
+      - name: Configure Cargo for Android
+        shell: bash
+        run: |
+          mkdir -p ~/.cargo
+          cat > ~/.cargo/config.toml <<EOF
+          [target.aarch64-linux-android]
+          linker = "${ANDROID_NDK}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android26-clang"
+          EOF
+
+      - name: Setup Golang
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.25.x'
+          cache-dependency-path: core/go.sum
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+          cache-key: flutter-android-arm64-${{ hashFiles('**/pubspec.lock') }}
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+
+      # Forks do not inherit the upstream keystore secrets, and a missing
+      # keystore silently falls back to debug signing in build.gradle.kts.
+      # So: use the repository keystore when the secrets exist, otherwise
+      # generate a throwaway self-signed release key. Never debug-signed.
+      - name: Setup signing
+        shell: bash
+        env:
+          KEYSTORE_B64: ${{ secrets.KEYSTORE }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          cd android
+          if [ -n "${KEYSTORE_B64:-}" ] && [ -n "${KEY_ALIAS:-}" ] \
+             && [ -n "${STORE_PASSWORD:-}" ] && [ -n "${KEY_PASSWORD:-}" ]; then
+            echo "${KEYSTORE_B64}" | base64 --decode > app/keystore.jks
+            {
+              echo "keyAlias=${KEY_ALIAS}"
+              echo "storePassword=${STORE_PASSWORD}"
+              echo "keyPassword=${KEY_PASSWORD}"
+            } >> local.properties
+            echo "SIGNING=repository keystore" >> "$GITHUB_ENV"
+            echo "::notice::Signing with the repository keystore secret."
+          else
+            ALIAS=bettbox-ci
+            PASS="$(openssl rand -hex 16)"
+            keytool -genkeypair -v \
+              -keystore app/keystore.jks \
+              -storetype JKS \
+              -alias "${ALIAS}" \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass "${PASS}" -keypass "${PASS}" \
+              -dname "CN=Bettbox CI Build, OU=Bettbox, O=Bettbox, L=Internet, ST=Internet, C=US"
+            {
+              echo "keyAlias=${ALIAS}"
+              echo "storePassword=${PASS}"
+              echo "keyPassword=${PASS}"
+            } >> local.properties
+            echo "SIGNING=generated CI keystore (self-signed)" >> "$GITHUB_ENV"
+            echo "::warning::No keystore secrets on this repository: generated a throwaway self-signed release key. The APK is release-signed but will not upgrade over an officially signed install."
+          fi
+
+      - name: Clean Gradle
+        run: |
+          cd android
+          flutter clean
+
+      - name: Build arm64-v8a APK
+        id: build_apk
+        shell: bash
+        run: |
+          set -o pipefail
+          {
+            echo '=== toolchain ==='
+            flutter --version
+            dart --version
+            go version
+            echo "ANDROID_NDK=${ANDROID_NDK:-unset}"
+            ls -d "${ANDROID_NDK:-/nonexistent}" || echo 'NDK directory missing'
+            echo '=== pub get + codegen ==='
+            flutter pub get
+            dart run build_runner build -d
+            echo '=== setup.dart android --arch arm64 ==='
+            dart setup.dart android --arch arm64 --env stable
+          } 2>&1 | tee build.log
+
+      - name: Report build log
+        if: failure()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Keep the interesting part: analyzer/compiler errors and the gradle
+          # failure block, not the megabytes of progress noise around them.
+          grep -nE 'Error:|error:|FAILURE:|Execution failed|Caused by:|Exception|What went wrong|Build failed|Target .* failed|lib/.*\.dart:[0-9]+' build.log \
+            | tail -120 > /tmp/errors.log || true
+          {
+            echo "### arm64-v8a build failed (${{ steps.build_apk.outcome }})"
+            echo ''
+            echo '```text'
+            if [ -s /tmp/errors.log ]; then
+              head -c 25000 /tmp/errors.log
+            fi
+            echo '```'
+            echo ''
+            echo '<details><summary>last 30 KB of build.log</summary>'
+            echo ''
+            echo '```text'
+            tail -c 30000 build.log
+            echo '```'
+            echo '</details>'
+          } > /tmp/report.md
+          PR="$(gh pr view "${GITHUB_REF_NAME}" --repo "${GITHUB_REPOSITORY}" --json number --jq .number 2>/dev/null || true)"
+          if [ -n "${PR}" ]; then
+            gh pr comment "${PR}" --repo "${GITHUB_REPOSITORY}" --body-file /tmp/report.md
+          fi
+
+      - name: Inspect artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "dist/ contents:"
+          find dist -type f -printf '%p  %s bytes\n' | sort
+          APK="$(find dist -name '*android-arm64-v8a*.apk' | head -1)"
+          if [ -z "${APK}" ]; then
+            echo "::error::No arm64-v8a APK was produced"
+            exit 1
+          fi
+          echo "APK_PATH=${APK}" >> "$GITHUB_ENV"
+          SHA="$(sha256sum "${APK}" | cut -d' ' -f1)"
+          SIZE="$(du -h "${APK}" | cut -f1)"
+          {
+            echo "## Bettbox arm64-v8a APK"
+            echo ""
+            echo "| | |"
+            echo "|---|---|"
+            echo "| Commit | \`${GITHUB_SHA:0:7}\` |"
+            echo "| Version | $(grep -m1 '^version:' pubspec.yaml | cut -d' ' -f2) |"
+            echo "| File | \`$(basename "${APK}")\` (${SIZE}) |"
+            echo "| SHA-256 | \`${SHA}\` |"
+            echo "| Signing | ${SIGNING} |"
+            echo ""
+            echo "Native libraries inside the APK:"
+            echo ""
+            echo '```'
+            unzip -l "${APK}" | grep -E 'lib/[^/]+/' | awk '{print $4}' | sort || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "sha256: ${SHA}"
+          echo "signing: ${SIGNING}"
+
+      - name: Report artifact
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          APK="${APK_PATH}"
+          VERSION="$(grep -m1 '^version:' pubspec.yaml | cut -d' ' -f2)"
+          {
+            echo "### arm64-v8a APK built from \`${GITHUB_SHA:0:7}\`"
+            echo ''
+            echo '| | |'
+            echo '|---|---|'
+            echo "| Version | ${VERSION} |"
+            echo "| File | \`$(basename "${APK}")\` |"
+            echo "| Size | $(du -h "${APK}" | cut -f1) |"
+            echo "| SHA-256 | \`$(sha256sum "${APK}" | cut -d' ' -f1)\` |"
+            echo "| Signing | ${SIGNING} |"
+            echo "| Workflow run | ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID} |"
+            echo ''
+            echo 'Native libraries inside the APK:'
+            echo ''
+            echo '```'
+            unzip -l "${APK}" | grep -E 'lib/[^/]+/' | awk '{print $4}' | sort
+            echo '```'
+            echo ''
+            echo 'Download it from the **Artifacts** section of the run above'
+            echo '(`Bettbox-android-arm64-v8a`).'
+          } > /tmp/artifact.md
+          PR="$(gh pr view "${GITHUB_REF_NAME}" --repo "${GITHUB_REPOSITORY}" --json number --jq .number 2>/dev/null || true)"
+          if [ -n "${PR}" ]; then
+            gh pr comment "${PR}" --repo "${GITHUB_REPOSITORY}" --body-file /tmp/artifact.md
+          fi
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v7
+        with:
+          name: Bettbox-android-arm64-v8a
+          path: ${{ env.APK_PATH }}
+          compression-level: 9
+          if-no-files-found: error
+          retention-days: 30

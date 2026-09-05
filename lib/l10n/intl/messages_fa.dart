@@ -52,6 +52,10 @@ class MessageLookup extends MessageLookupByLibrary {
 
   static String m14(count) => "${Intl.plural(count, other: '# سال')}";
 
+  static String m15(count) => "${count} گره وارد شد";
+  static String m16(count, failed) =>
+      "${count} گره وارد شد، ${failed} لینک ناموفق بود";
+
   final messages = _notInlinedMessages(_notInlinedMessages);
   static Map<String, Function> _notInlinedMessages(_) => <String, Function>{
     "about": MessageLookupByLibrary.simpleMessage("درباره"),
@@ -583,6 +587,9 @@ class MessageLookup extends MessageLookupByLibrary {
       "وارد کردن از طریق کد",
     ),
     "importFromURL": MessageLookupByLibrary.simpleMessage("وارد کردن از URL"),
+    "importShareLink": MessageLookupByLibrary.simpleMessage(
+      "وارد کردن لینک اشتراک",
+    ),
     "importUrl": MessageLookupByLibrary.simpleMessage("وارد کردن از URL"),
     "infiniteTime": MessageLookupByLibrary.simpleMessage("نامحدود"),
     "init": MessageLookupByLibrary.simpleMessage("راه‌اندازی اولیه"),
@@ -1072,6 +1079,21 @@ class MessageLookup extends MessageLookupByLibrary {
       "سرویس در حال اجرا است",
     ),
     "settings": MessageLookupByLibrary.simpleMessage("تنظیمات"),
+    "shareLink": MessageLookupByLibrary.simpleMessage("لینک اشتراک"),
+    "shareLinkDesc": MessageLookupByLibrary.simpleMessage(
+      "چسباندن لینک‌های vmess / vless / trojan / ss / hysteria2",
+    ),
+    "shareLinkHint": MessageLookupByLibrary.simpleMessage(
+      "vmess://, vless://, trojan://, ss://, hysteria2:// ...",
+    ),
+    "shareLinkImported": m15,
+    "shareLinkInvalid": MessageLookupByLibrary.simpleMessage(
+      "لینک اشتراک یا پیکربندی معتبری یافت نشد",
+    ),
+    "shareLinkPartiallyImported": m16,
+    "shareLinkValidationDesc": MessageLookupByLibrary.simpleMessage(
+      "لطفاً یک آدرس یا لینک اشتراک معتبر وارد کنید",
+    ),
     "show": MessageLookupByLibrary.simpleMessage("نمایش"),
     "showHiddenItems": MessageLookupByLibrary.simpleMessage(
       "نمایش موارد پنهان",

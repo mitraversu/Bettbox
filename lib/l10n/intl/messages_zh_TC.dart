@@ -51,6 +51,9 @@ class MessageLookup extends MessageLookupByLibrary {
 
   static String m14(count) => "${Intl.plural(count, other: '年')}";
 
+  static String m15(count) => "已匯入 ${count} 個節點";
+  static String m16(count, failed) => "已匯入 ${count} 個節點，${failed} 條連結解析失敗";
+
   final messages = _notInlinedMessages(_notInlinedMessages);
   static Map<String, Function> _notInlinedMessages(_) => <String, Function>{
     "about": MessageLookupByLibrary.simpleMessage("關於"),
@@ -424,6 +427,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "importFile": MessageLookupByLibrary.simpleMessage("透過檔案匯入"),
     "importFromCode": MessageLookupByLibrary.simpleMessage("透過程式碼匯入"),
     "importFromURL": MessageLookupByLibrary.simpleMessage("從 URL 匯入"),
+    "importShareLink": MessageLookupByLibrary.simpleMessage("匯入分享連結"),
     "importUrl": MessageLookupByLibrary.simpleMessage("透過 URL 匯入"),
     "infiniteTime": MessageLookupByLibrary.simpleMessage("長期有效"),
     "init": MessageLookupByLibrary.simpleMessage("初始化"),
@@ -751,6 +755,19 @@ class MessageLookup extends MessageLookupByLibrary {
     "serviceReady": MessageLookupByLibrary.simpleMessage("服務已就緒"),
     "serviceRunning": MessageLookupByLibrary.simpleMessage("服務正在執行中"),
     "settings": MessageLookupByLibrary.simpleMessage("設定"),
+    "shareLink": MessageLookupByLibrary.simpleMessage("分享連結"),
+    "shareLinkDesc": MessageLookupByLibrary.simpleMessage(
+      "貼上 vmess / vless / trojan / ss / hysteria2 等節點分享連結",
+    ),
+    "shareLinkHint": MessageLookupByLibrary.simpleMessage(
+      "vmess://, vless://, trojan://, ss://, hysteria2:// ...",
+    ),
+    "shareLinkImported": m15,
+    "shareLinkInvalid": MessageLookupByLibrary.simpleMessage("未找到有效的分享連結或設定"),
+    "shareLinkPartiallyImported": m16,
+    "shareLinkValidationDesc": MessageLookupByLibrary.simpleMessage(
+      "請輸入有效的訂閱位址或分享連結",
+    ),
     "show": MessageLookupByLibrary.simpleMessage("顯示"),
     "showHiddenItems": MessageLookupByLibrary.simpleMessage("顯示隱藏項"),
     "showMenu": MessageLookupByLibrary.simpleMessage("打開選單"),

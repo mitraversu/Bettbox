@@ -695,5 +695,13 @@
   "networkErrorRetryLater": "Network error, please try again later",
   "tunVirtualAddress": "TUN Virtual Network Adapter",
   "installTime": "Install Time",
-  "updateTime": "Update Time"
+  "updateTime": "Update Time",
+  "shareLink": "Share Link",
+  "shareLinkDesc": "Paste vmess / vless / trojan / ss / hysteria2 share links",
+  "importShareLink": "Import Share Link",
+  "shareLinkHint": "vmess://, vless://, trojan://, ss://, hysteria2:// ...",
+  "shareLinkImported": "Imported {count} node(s)",
+  "shareLinkPartiallyImported": "Imported {count} node(s), {failed} link(s) failed",
+  "shareLinkInvalid": "No valid share link or config found",
+  "shareLinkValidationDesc": "Please enter a valid URL or share link"
 }
