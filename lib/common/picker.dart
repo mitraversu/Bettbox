@@ -86,8 +86,9 @@ class Picker {
       xFile.path,
       formats: [BarcodeFormat.qrCode],
     );
-    final result = capture?.barcodes.first.rawValue;
-    if (result == null || !result.isUrl) {
+    final result = capture?.barcodes.first.rawValue?.trim();
+    // QR codes carry subscription addresses as well as proxy share links.
+    if (result == null || result.isEmpty || !result.isProfileContent) {
       throw appLocalizations.pleaseUploadValidQrcode;
     }
     return result;

@@ -43,6 +43,13 @@ class EditProfileViewState extends State<EditProfileView> {
 
   Profile get profile => widget.profile;
 
+  /// Whether the address field holds share links / raw config instead of a
+  /// subscription URL.
+  bool get _isShareLinkContent {
+    final value = urlController.text.trim();
+    return !value.isUrl && value.isShareLinkContent;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -83,6 +90,20 @@ class EditProfileViewState extends State<EditProfileView> {
   Future<void> _handleConfirm() async {
     if (!_formKey.currentState!.validate()) return;
     final appController = globalState.appController;
+    if (widget.isNew && _isShareLinkContent) {
+      // v2rayNG style import: share links become a local profile.
+      final imported = await appController.addProfileFormShareLink(
+        urlController.text.trim(),
+        label: labelController.text.trim(),
+        navigate: false,
+      );
+      if (!mounted || !imported) return;
+      Navigator.of(context).pop();
+      if (widget.context.mounted) {
+        Navigator.of(widget.context).pop();
+      }
+      return;
+    }
     Profile profile = this.profile.copyWith(
       url: urlController.text,
       label: labelController.text.trim().isEmpty
@@ -314,6 +335,7 @@ class EditProfileViewState extends State<EditProfileView> {
             decoration: InputDecoration(
               border: const OutlineInputBorder(),
               labelText: appLocalizations.url,
+              helperText: widget.isNew ? appLocalizations.shareLinkHint : null,
             ),
             onEditingComplete: widget.isNew
                 ? () => FocusManager.instance.primaryFocus?.unfocus()
@@ -322,10 +344,11 @@ class EditProfileViewState extends State<EditProfileView> {
               if (value == null || value.isEmpty) {
                 return appLocalizations.profileUrlNullValidationDesc;
               }
-              if (!value.isUrl) {
-                return appLocalizations.profileUrlInvalidValidationDesc;
-              }
-              return null;
+              final content = value.trim();
+              if (content.isUrl) return null;
+              // New profiles also accept pasted share links and raw configs.
+              if (widget.isNew && content.isShareLinkContent) return null;
+              return appLocalizations.shareLinkValidationDesc;
             },
           ),
         ),

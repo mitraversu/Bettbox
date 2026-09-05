@@ -51,6 +51,9 @@ class MessageLookup extends MessageLookupByLibrary {
 
   static String m14(count) => "${Intl.plural(count, other: '年')}";
 
+  static String m15(count) => "已导入 ${count} 个节点";
+  static String m16(count, failed) => "已导入 ${count} 个节点，${failed} 条链接解析失败";
+
   final messages = _notInlinedMessages(_notInlinedMessages);
   static Map<String, Function> _notInlinedMessages(_) => <String, Function>{
     "about": MessageLookupByLibrary.simpleMessage("关于"),
@@ -416,6 +419,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "importFile": MessageLookupByLibrary.simpleMessage("通过文件导入"),
     "importFromCode": MessageLookupByLibrary.simpleMessage("通过代码导入"),
     "importFromURL": MessageLookupByLibrary.simpleMessage("从 URL 导入"),
+    "importShareLink": MessageLookupByLibrary.simpleMessage("导入分享链接"),
     "importUrl": MessageLookupByLibrary.simpleMessage("通过 URL 导入"),
     "infiniteTime": MessageLookupByLibrary.simpleMessage("长期有效"),
     "init": MessageLookupByLibrary.simpleMessage("初始化"),
@@ -739,6 +743,19 @@ class MessageLookup extends MessageLookupByLibrary {
     "serviceReady": MessageLookupByLibrary.simpleMessage("服务已就绪"),
     "serviceRunning": MessageLookupByLibrary.simpleMessage("服务正在运行中"),
     "settings": MessageLookupByLibrary.simpleMessage("设置"),
+    "shareLink": MessageLookupByLibrary.simpleMessage("分享链接"),
+    "shareLinkDesc": MessageLookupByLibrary.simpleMessage(
+      "粘贴 vmess / vless / trojan / ss / hysteria2 等节点分享链接",
+    ),
+    "shareLinkHint": MessageLookupByLibrary.simpleMessage(
+      "vmess://, vless://, trojan://, ss://, hysteria2:// ...",
+    ),
+    "shareLinkImported": m15,
+    "shareLinkInvalid": MessageLookupByLibrary.simpleMessage("未找到有效的分享链接或配置"),
+    "shareLinkPartiallyImported": m16,
+    "shareLinkValidationDesc": MessageLookupByLibrary.simpleMessage(
+      "请输入有效的订阅地址或分享链接",
+    ),
     "show": MessageLookupByLibrary.simpleMessage("显示"),
     "showHiddenItems": MessageLookupByLibrary.simpleMessage("显示隐藏项"),
     "showMenu": MessageLookupByLibrary.simpleMessage("打开菜单"),

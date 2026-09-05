@@ -696,5 +696,13 @@
   "networkErrorRetryLater": "ネットワークエラーが発生しました。後でもう一度お試しください",
   "tunVirtualAddress": "TUN 仮想ネットワークアダプター",
   "installTime": "インストール日時",
-  "updateTime": "更新日時"
+  "updateTime": "更新日時",
+  "shareLink": "共有リンク",
+  "shareLinkDesc": "vmess / vless / trojan / ss / hysteria2 などの共有リンクを貼り付け",
+  "importShareLink": "共有リンクをインポート",
+  "shareLinkHint": "vmess://, vless://, trojan://, ss://, hysteria2:// ...",
+  "shareLinkImported": "{count} 件のノードをインポートしました",
+  "shareLinkPartiallyImported": "{count} 件のノードをインポート、{failed} 件は失敗しました",
+  "shareLinkInvalid": "有効な共有リンクまたは設定が見つかりません",
+  "shareLinkValidationDesc": "有効な URL または共有リンクを入力してください"
 }

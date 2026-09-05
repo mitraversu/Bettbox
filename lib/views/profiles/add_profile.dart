@@ -49,6 +49,25 @@ class AddProfileView extends StatelessWidget {
     );
   }
 
+  /// Sends pasted / scanned / typed content where it belongs: a subscription
+  /// address opens the profile editor, share links (`vmess://`, `vless://`,
+  /// `ss://`, ...) and raw configs are imported as a local profile right away.
+  Future<void> _importContent(String text) async {
+    final content = text.trim();
+    if (content.isEmpty) return;
+    switch (ShareLink.detect(content)) {
+      case ShareLinkContentKind.subscriptionUrl:
+        _handleAddProfileFormURL(content);
+      case ShareLinkContentKind.shareLink:
+      case ShareLinkContentKind.yamlConfig:
+        await globalState.appController.addProfileFormShareLink(content);
+      case ShareLinkContentKind.unknown:
+        if (context.mounted) {
+          context.showSnackBar(appLocalizations.shareLinkInvalid);
+        }
+    }
+  }
+
   Future<void> _handleAddProfileFromClipboard() async {
     try {
       final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
@@ -63,16 +82,7 @@ class AddProfileView extends StatelessWidget {
         return;
       }
 
-      if (!text.isUrl) {
-        if (context.mounted) {
-          context.showSnackBar(
-            appLocalizations.urlTip(appLocalizations.clipboard),
-          );
-        }
-        return;
-      }
-
-      _handleAddProfileFormURL(text);
+      await _importContent(text);
     } catch (e) {
       if (context.mounted) {
         context.showSnackBar(e.toString());
@@ -80,15 +90,41 @@ class AddProfileView extends StatelessWidget {
     }
   }
 
+  Future<void> _handleAddProfileFormShareLink() async {
+    final text = await globalState.showCommonDialog<String>(
+      child: InputDialog(
+        title: appLocalizations.importShareLink,
+        value: '',
+        labelText: appLocalizations.shareLink,
+        hintText: appLocalizations.shareLinkHint,
+        maxLines: 8,
+        delayedFocus: true,
+        keyboardType: TextInputType.multiline,
+        textInputAction: TextInputAction.newline,
+        validator: (value) {
+          if (value == null || value.trim().isEmpty) {
+            return appLocalizations.emptyTip(appLocalizations.shareLink);
+          }
+          if (!value.trim().isProfileContent) {
+            return appLocalizations.shareLinkValidationDesc;
+          }
+          return null;
+        },
+      ),
+    );
+    if (text == null || text.trim().isEmpty) return;
+    await _importContent(text);
+  }
+
   Future<void> _toScan() async {
     if (system.isDesktop) {
       globalState.appController.addProfileFormQrCode();
       return;
     }
-    final url = await BaseNavigator.push(context, const ScanPage());
-    if (url != null) {
+    final value = await BaseNavigator.push(context, const ScanPage());
+    if (value != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _handleAddProfileFormURL(url);
+        _importContent('$value');
       });
     }
   }
@@ -127,6 +163,21 @@ class AddProfileView extends StatelessWidget {
                 title: Text(appLocalizations.clipboard),
                 subtitle: Text(appLocalizations.clipboardDesc),
                 onTap: _handleAddProfileFromClipboard,
+              ),
+              Divider(
+                height: 1,
+                thickness: 1,
+                color: context.colorScheme.outlineVariant.withValues(
+                  alpha: context.colorScheme.brightness == Brightness.light ? 0.6 : 0.45,
+                ),
+                indent: 16,
+                endIndent: 16,
+              ),
+              ListItem(
+                leading: const Icon(Icons.add_link),
+                title: Text(appLocalizations.shareLink),
+                subtitle: Text(appLocalizations.shareLinkDesc),
+                onTap: _handleAddProfileFormShareLink,
               ),
               Divider(
                 height: 1,

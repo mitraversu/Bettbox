@@ -696,5 +696,13 @@
   "networkErrorRetryLater": "網路異常，請稍後再試",
   "tunVirtualAddress": "TUN 虛擬網卡位址",
   "installTime": "安裝時間",
-  "updateTime": "更新時間"
+  "updateTime": "更新時間",
+  "shareLink": "分享連結",
+  "shareLinkDesc": "貼上 vmess / vless / trojan / ss / hysteria2 等節點分享連結",
+  "importShareLink": "匯入分享連結",
+  "shareLinkHint": "vmess://, vless://, trojan://, ss://, hysteria2:// ...",
+  "shareLinkImported": "已匯入 {count} 個節點",
+  "shareLinkPartiallyImported": "已匯入 {count} 個節點，{failed} 條連結解析失敗",
+  "shareLinkInvalid": "未找到有效的分享連結或設定",
+  "shareLinkValidationDesc": "請輸入有效的訂閱位址或分享連結"
 }

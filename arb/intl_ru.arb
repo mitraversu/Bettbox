@@ -698,5 +698,13 @@
   "installTime": "Время установки",
   "updateTime": "Время обновления",
   "lightIcon": "Светлая иконка",
-  "lightIconDesc": "Вручную переключить на светлую иконку приложения"
+  "lightIconDesc": "Вручную переключить на светлую иконку приложения",
+  "shareLink": "Ссылка узла",
+  "shareLinkDesc": "Вставьте ссылки vmess / vless / trojan / ss / hysteria2",
+  "importShareLink": "Импорт ссылки узла",
+  "shareLinkHint": "vmess://, vless://, trojan://, ss://, hysteria2:// ...",
+  "shareLinkImported": "Импортировано узлов: {count}",
+  "shareLinkPartiallyImported": "Импортировано узлов: {count}, не удалось разобрать: {failed}",
+  "shareLinkInvalid": "Не найдено корректной ссылки или конфигурации",
+  "shareLinkValidationDesc": "Введите корректный URL или ссылку узла"
 }

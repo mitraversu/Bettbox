@@ -30,6 +30,17 @@
 				<string>clash</string>
 				<string>clashmeta</string>
 				<string>bettbox</string>
+				<string>vmess</string>
+				<string>vless</string>
+				<string>trojan</string>
+				<string>ss</string>
+				<string>ssr</string>
+				<string>hysteria</string>
+				<string>hysteria2</string>
+				<string>hy2</string>
+				<string>tuic</string>
+				<string>wireguard</string>
+				<string>anytls</string>
 			</array>
 		</dict>
 	</array>

@@ -39,11 +39,14 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
 
   void _handleBarcode(BarcodeCapture barcodeCapture) {
     final barcode = barcodeCapture.barcodes.first;
-    if (barcode.type == BarcodeType.url) {
-      Navigator.pop<String>(context, barcode.rawValue);
-    } else {
-      Navigator.pop(context);
+    final value = barcode.rawValue?.trim() ?? '';
+    // Accept subscription addresses and proxy share links (`vmess://`, ...).
+    if (value.isNotEmpty &&
+        (barcode.type == BarcodeType.url || value.isProfileContent)) {
+      Navigator.pop<String>(context, value);
+      return;
     }
+    Navigator.pop(context);
   }
 
   @override
