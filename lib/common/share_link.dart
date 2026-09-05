@@ -104,7 +104,7 @@ class _LinkParts {
     return null;
   }
 
-  bool? flag(List<String> keys) => _boolValue(param(keys));
+  bool? flag(List<String> keys) => ShareLink._boolValue(param(keys));
 }
 
 String _normalizeKey(String key) =>
@@ -266,7 +266,7 @@ class ShareLink {
       if (proxy != null) {
         return ShareLinkParseResult(
           kind: ShareLinkContentKind.shareLink,
-          proxies: [_uniqueNames([proxy])],
+          proxies: [_uniqueNames(proxy)],
           linkCount: 1,
         );
       }
