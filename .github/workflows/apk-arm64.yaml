@@ -1,0 +1,166 @@
+name: apk-arm64
+
+# Single-ABI build for the share-link import branch: produces only the
+# arm64-v8a APK and uploads it as a workflow artifact (no tag, no release).
+# The multi-platform release pipeline in build.yaml keeps running on `v*` tags.
+on:
+  push:
+    branches:
+      - arena/01a072f3-bettbox
+  workflow_dispatch:
+
+permissions: write-all
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  SENTRY_BACKEND: none
+  NDK_VERSION: 28.2.13676358
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Setup Android NDK
+        shell: bash
+        run: |
+          yes | "${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager" --install "ndk;${NDK_VERSION}" >/dev/null 2>&1 || true
+          echo "ANDROID_NDK=${ANDROID_SDK_ROOT}/ndk/${NDK_VERSION}" >> "$GITHUB_ENV"
+
+      - name: Configure Cargo for Android
+        shell: bash
+        run: |
+          mkdir -p ~/.cargo
+          cat > ~/.cargo/config.toml <<EOF
+          [target.aarch64-linux-android]
+          linker = "${ANDROID_NDK}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android26-clang"
+          EOF
+
+      - name: Setup Golang
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.25.x'
+          cache-dependency-path: core/go.sum
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+          cache-key: flutter-android-arm64-${{ hashFiles('**/pubspec.lock') }}
+          flutter-version: '3.44.9'
+
+      # Forks do not inherit the upstream keystore secrets, and a missing
+      # keystore silently falls back to debug signing in build.gradle.kts.
+      # So: use the repository keystore when the secrets exist, otherwise
+      # generate a throwaway self-signed release key. Never debug-signed.
+      - name: Setup signing
+        shell: bash
+        env:
+          KEYSTORE_B64: ${{ secrets.KEYSTORE }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          cd android
+          if [ -n "${KEYSTORE_B64:-}" ] && [ -n "${KEY_ALIAS:-}" ] \
+             && [ -n "${STORE_PASSWORD:-}" ] && [ -n "${KEY_PASSWORD:-}" ]; then
+            echo "${KEYSTORE_B64}" | base64 --decode > app/keystore.jks
+            {
+              echo "keyAlias=${KEY_ALIAS}"
+              echo "storePassword=${STORE_PASSWORD}"
+              echo "keyPassword=${KEY_PASSWORD}"
+            } >> local.properties
+            echo "SIGNING=repository keystore" >> "$GITHUB_ENV"
+            echo "::notice::Signing with the repository keystore secret."
+          else
+            ALIAS=bettbox-ci
+            PASS="$(openssl rand -hex 16)"
+            keytool -genkeypair -v \
+              -keystore app/keystore.jks \
+              -storetype JKS \
+              -alias "${ALIAS}" \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass "${PASS}" -keypass "${PASS}" \
+              -dname "CN=Bettbox CI Build, OU=Bettbox, O=Bettbox, L=Internet, ST=Internet, C=US"
+            {
+              echo "keyAlias=${ALIAS}"
+              echo "storePassword=${PASS}"
+              echo "keyPassword=${PASS}"
+            } >> local.properties
+            echo "SIGNING=generated CI keystore (self-signed)" >> "$GITHUB_ENV"
+            echo "::warning::No keystore secrets on this repository: generated a throwaway self-signed release key. The APK is release-signed but will not upgrade over an officially signed install."
+          fi
+
+      - name: Clean Gradle
+        run: |
+          cd android
+          flutter clean
+
+      - name: Build arm64-v8a APK
+        shell: bash
+        run: |
+          flutter pub get
+          dart run build_runner build -d
+          dart setup.dart android --arch arm64 --env stable
+
+      - name: Inspect artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "dist/ contents:"
+          find dist -type f -printf '%p  %s bytes\n' | sort
+          APK="$(find dist -name '*android-arm64-v8a*.apk' | head -1)"
+          if [ -z "${APK}" ]; then
+            echo "::error::No arm64-v8a APK was produced"
+            find dist -type f || true
+            exit 1
+          fi
+          echo "APK_PATH=${APK}" >> "$GITHUB_ENV"
+          SHA="$(sha256sum "${APK}" | cut -d' ' -f1)"
+          SIZE="$(du -h "${APK}" | cut -f1)"
+          echo "APK_SHA256=${SHA}" >> "$GITHUB_ENV"
+          {
+            echo "## Bettbox arm64-v8a APK"
+            echo ""
+            echo "| | |"
+            echo "|---|---|"
+            echo "| Commit | \`${GITHUB_SHA:0:7}\` |"
+            echo "| Version | $(grep -m1 '^version:' pubspec.yaml | cut -d' ' -f2) |"
+            echo "| File | \`$(basename "${APK}")\` (${SIZE}) |"
+            echo "| SHA-256 | \`${SHA}\` |"
+            echo "| Signing | ${SIGNING} |"
+            echo ""
+            echo "Native libraries inside the APK (arm64-v8a only):"
+            echo ""
+            echo '```'
+            unzip -l "${APK}" | grep -E 'lib/[^/]+/' | awk '{print $4}' | sort || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v7
+        with:
+          name: Bettbox-android-arm64-v8a
+          path: ${{ env.APK_PATH }}
+          compression-level: 9
+          if-no-files-found: error
+          retention-days: 30
