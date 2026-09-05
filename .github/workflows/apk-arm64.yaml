@@ -254,6 +254,40 @@ jobs:
           echo "sha256: ${SHA}"
           echo "signing: ${SIGNING}"
 
+      - name: Report artifact
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          APK="${APK_PATH}"
+          VERSION="$(grep -m1 '^version:' pubspec.yaml | cut -d' ' -f2)"
+          {
+            echo "### arm64-v8a APK built from \`${GITHUB_SHA:0:7}\`"
+            echo ''
+            echo '| | |'
+            echo '|---|---|'
+            echo "| Version | ${VERSION} |"
+            echo "| File | \`$(basename "${APK}")\` |"
+            echo "| Size | $(du -h "${APK}" | cut -f1) |"
+            echo "| SHA-256 | \`$(sha256sum "${APK}" | cut -d' ' -f1)\` |"
+            echo "| Signing | ${SIGNING} |"
+            echo "| Workflow run | ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID} |"
+            echo ''
+            echo 'Native libraries inside the APK:'
+            echo ''
+            echo '```'
+            unzip -l "${APK}" | grep -E 'lib/[^/]+/' | awk '{print $4}' | sort
+            echo '```'
+            echo ''
+            echo 'Download it from the **Artifacts** section of the run above'
+            echo '(`Bettbox-android-arm64-v8a`).'
+          } > /tmp/artifact.md
+          PR="$(gh pr view "${GITHUB_REF_NAME}" --repo "${GITHUB_REPOSITORY}" --json number --jq .number 2>/dev/null || true)"
+          if [ -n "${PR}" ]; then
+            gh pr comment "${PR}" --repo "${GITHUB_REPOSITORY}" --body-file /tmp/artifact.md
+          fi
+
       - name: Upload APK
         uses: actions/upload-artifact@v7
         with:
