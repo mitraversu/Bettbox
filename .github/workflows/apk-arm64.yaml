@@ -29,7 +29,7 @@ jobs:
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: aarch64-linux-android
+          targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android,i686-linux-android
 
       - name: Setup Java
         uses: actions/setup-java@v5
@@ -116,11 +116,54 @@ jobs:
           flutter clean
 
       - name: Build arm64-v8a APK
+        id: build_apk
         shell: bash
         run: |
-          flutter pub get
-          dart run build_runner build -d
-          dart setup.dart android --arch arm64 --env stable
+          set -o pipefail
+          {
+            echo '=== toolchain ==='
+            flutter --version
+            dart --version
+            go version
+            rustc --version
+            echo "ANDROID_NDK=${ANDROID_NDK:-unset}"
+            echo "ANDROID_SDK_ROOT=${ANDROID_SDK_ROOT:-unset}"
+            ls -d "${ANDROID_NDK:-/nonexistent}" || echo 'NDK directory missing'
+            echo '=== pub get ==='
+            flutter pub get
+            echo '=== build_runner ==='
+            dart run build_runner build -d
+            echo '=== analyze (non fatal, signal only) ==='
+            flutter analyze --no-fatal-infos --no-fatal-warnings || true
+            echo '=== setup.dart android --arch arm64 ==='
+            dart setup.dart android --arch arm64 --env stable
+          } 2>&1 | tee build.log
+
+      - name: Report log
+        if: always()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tail -c 55000 build.log > /tmp/tail.log 2>/dev/null || echo '(no build.log)' > /tmp/tail.log
+          # Inline annotation: readable through the check-runs API.
+          echo "::error::build failed; last lines: $(tail -5 /tmp/tail.log | tr '\n' ' | ')"
+          {
+            echo "### arm64-v8a build log (${{ steps.build_apk.outcome }})"
+            echo ''
+            echo '<details><summary>last ~55 KB of build.log</summary>'
+            echo ''
+            echo '```text'
+            cat /tmp/tail.log
+            echo '```'
+            echo '</details>'
+          } > /tmp/report.md
+          PR="$(gh pr view "${GITHUB_REF_NAME}" --repo "${GITHUB_REPOSITORY}" --json number --jq .number 2>/dev/null || true)"
+          if [ -n "${PR}" ]; then
+            gh pr comment "${PR}" --repo "${GITHUB_REPOSITORY}" --body-file /tmp/report.md
+          else
+            echo 'No pull request found for this ref; log was not posted.'
+          fi
 
       - name: Inspect artifact
         shell: bash
